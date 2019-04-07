@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    body { background: #000000}
+  </style>
+</head>
+<body>
+  <script src="data.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <svg height="100vh" width="100vw"></svg>
+  <script>
+
+    var svg = d3.select("svg");
+    var colour = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var data = window.data
+    .map(d => ({
+      ...d,
+      radius: d.radius / 100 * 80 + 20
+    }))
+    .map(d => {
+      return { r: d.radius, url: d.url }
+    });
+
+    var simulation = d3.forceSimulation(data)
+    .force("x", d3.forceX(600).strength(0.05))
+    .force("y", d3.forceY(350).strength(0.05))
+    .force("collide", d3.forceCollide(function(d) {
+      return d.r + 8;
+    }));
+
+    var defs = svg.append("defs");
+     defs.selectAll(".flag")
+     .data(data)
+     .enter()
+       .append("pattern")
+       .attr("id", function(d, i) { return i; })
+       .attr("class", "flag")
+       .attr("width", "100%")
+       .attr("height", "100%")
+       .attr("patternContentUnits", "objectBoundingBox")
+         .append("image")
+         .attr("width", 1)
+         .attr("height", 1)
+         // xMidYMid: center the image in the circle
+         // slice: scale the image to fill the circle
+         .attr("preserveAspectRatio", "xMidYMid slice")
+         .attr("xlink:href", function(d) {
+           return d.url;
+          });
+
+    var circles = svg.selectAll(".circles")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("r", d => d.r)
+    .attr("fill", (d, i) => "url(#"+i+")");
+
+
+    var isOver = false
+    var timeout = null
+
+    circles.on('mouseover', function(){
+      isOver = true
+      clearTimeout(timeout)
+      timeout = setTimeout(function(){
+        if(isOver){
+          mouseOn()
+        }
+      }, 100)
+    })
+    .on('mouseout', function(){
+      isOver = false
+      clearTimeout(timeout)
+      timeout = setTimeout(function(){
+        if(!isOver){
+          mouseOff()
+        }
+      }, 100)
+    })
+
+    simulation.nodes(data)
+    .on("tick", d => {
+      circles.attr("cx", d => d.x ).attr("cy", d => d.y);
+    });
+
+    function mouseOn() {
+
+      simulation.force("collide", d3.forceCollide(function(d) {
+        return d.r * 1.5;
+      }));
+
+      simulation.alpha(0.8).restart();
+    }
+
+    function mouseOff() {
+      // d3.select(this).attr('r', d => d.r);
+      //circles.attr('opacity', 1);
+      simulation.force("collide", d3.forceCollide(function(d) {
+        return d.r + 8;
+      }));
+
+      simulation.alpha(0.8).restart();
+    }
+  </script>
+</body>
+</html>
